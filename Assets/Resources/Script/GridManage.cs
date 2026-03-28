@@ -1,6 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+public struct GridData
+{
+    public int x;
+    public int y;
+    public bool canWalk;
+    public int defBonus;
+}
 
 public class GridManage : MonoBehaviour
 {
@@ -84,12 +91,4 @@ public class GridManage : MonoBehaviour
         Debug.Log("±£´æ³É¹¦");
     }*/
 
-}
-
-public struct GridData
-{
-    public int x;
-    public int y;
-    public bool canWalk;
-    public int defBonus;
 }
