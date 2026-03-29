@@ -18,6 +18,7 @@ public class PlayerCamera : MonoBehaviour
             if (Physics.Raycast(ray, out hit))
             {
                 Debug.Log("" + hit.collider.gameObject.transform.position);
+                
             }
         }
         if(Input.GetMouseButton(1)) 
