@@ -31,6 +31,9 @@ public class Move : MonoBehaviour
     public List<Path> visited = new List<Path>();
     public List<Vector3> pathList = new List<Vector3>();
     public bool isFind = false;
+    public float moveSpeed = 5f;
+    //后面要移到GameManage里面
+    bool isMoving = false;
 
     private void Start()
     {
@@ -42,12 +45,17 @@ public class Move : MonoBehaviour
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-            if (Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out hit)&& !isMoving)
             {
                 Vector3 start = new Vector3(Mathf.Round(transform.position.x), 0, Mathf.Round(transform.position.z));
                 Vector3 end = new Vector3(Mathf.Round(hit.transform.position.x), 0, Mathf.Round(hit.transform.position.z));
                 AStar(start, end);
-                foreach (var p in pathList) Debug.Log("路径点：" + p);
+                    foreach (var p in pathList)
+                    {
+                        Debug.Log("路径点：" + p);
+                    }
+                    isMoving = true;
+                    StartCoroutine(MoveByGrid());
             }
         }
     }
@@ -139,6 +147,34 @@ public class Move : MonoBehaviour
             current = currentParent.parentPos;
         }
     }
+
+    public System.Collections.IEnumerator MoveByGrid()
+    {
+        foreach (var targetPos in pathList)
+        {
+            while(Mathf.RoundToInt(transform.position.x) != Mathf.RoundToInt(targetPos.x)
+            || Mathf.RoundToInt(transform.position.z) != Mathf.RoundToInt(targetPos.z))
+            {
+                Vector3 dir = targetPos - transform.position;
+                dir.y = 0;
+
+                if(dir.magnitude > 0.1f)
+                {
+                    Quaternion quaternion = Quaternion.LookRotation(dir);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, quaternion, 10f * Time.deltaTime);
+                }
+
+                transform.position = Vector3.MoveTowards(
+                    transform.position,
+                    targetPos,
+                    moveSpeed * Time.deltaTime
+                    );
+                 yield return null;  
+            } 
+        }
+        isMoving = false;
+    }
+
     public float CalculateDis(Vector3 start, Vector3 end)
     {
         return Mathf.Abs(start.x - end.x) + Mathf.Abs(start.z - end.z);
