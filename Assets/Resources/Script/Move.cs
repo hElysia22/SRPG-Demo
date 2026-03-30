@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
 public struct Path : IComparable<Path>
 {
     public Vector3 pos;
     public float cost;
     public Vector3 parentPos;
+
     public Path(Vector3 pos, float cost, Vector3 parentPos)
     {
         this.pos = pos;
@@ -20,13 +22,35 @@ public struct Path : IComparable<Path>
     }
 }
 
+
 public class Move : MonoBehaviour
 {
+    
+    public GridData[,] map;
     public List<Path> costList = new List<Path>();
     public List<Path> visited = new List<Path>();
     public List<Vector3> pathList = new List<Vector3>();
-    public GridData[,] map = GridManage.Instance.gridArray; 
     public bool isFind = false;
+
+    private void Start()
+    {
+        map = GridManage.Instance.gridArray;
+    }
+    private void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+            if (Physics.Raycast(ray, out hit))
+            {
+                Vector3 start = new Vector3(Mathf.Round(transform.position.x), 0, Mathf.Round(transform.position.z));
+                Vector3 end = new Vector3(Mathf.Round(hit.transform.position.x), 0, Mathf.Round(hit.transform.position.z));
+                AStar(start, end);
+                foreach (var p in pathList) Debug.Log("Â·¾¶µã£º" + p);
+            }
+        }
+    }
 
     public void AStar(Vector3 start, Vector3 end)
     {
@@ -35,8 +59,6 @@ public class Move : MonoBehaviour
         visited.Clear();
         pathList.Clear();
         isFind = false;
-
-        visited.Add(new Path(start, 0, Vector3.zero));
         FindPath(start, end, Vector3.zero);
 
         pathList.Reverse();
@@ -44,6 +66,11 @@ public class Move : MonoBehaviour
 
     public void FindPath(Vector3 start, Vector3 end, Vector3 parentPos)
     {
+        if (!visited.Exists(p => p.pos == start))
+        {
+            Path currentPath = new Path(start, CalculateDis(start, end), parentPos);
+            visited.Add(currentPath);
+        }
         if (isFind)
         {
             return;
@@ -53,8 +80,8 @@ public class Move : MonoBehaviour
             isFind = true;
             RetracePath(start);
             return;
-        }
-        
+        } 
+
         int startX = (int)start.x;
         int startY = (int)start.z;
         (int x, int y)[] dirs = new (int, int)[]
@@ -77,7 +104,6 @@ public class Move : MonoBehaviour
                     Path _path = new Path(pos, CalculateDis(pos, end), start);
                     if (!visited.Exists(p => p.pos == _path.pos))
                     {
-                        visited.Add(_path);
                         costList.Add(_path);
                     } 
             }
