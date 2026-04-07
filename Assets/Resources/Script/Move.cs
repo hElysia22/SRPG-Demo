@@ -47,15 +47,11 @@ public class Move : MonoBehaviour
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit)&& !isMoving && canPlay)
             {
-                Vector3 start = new Vector3(Mathf.Round(transform.position.x), 0, Mathf.Round(transform.position.z));
-                Vector3 end = new Vector3(Mathf.Round(hit.transform.position.x), 0, Mathf.Round(hit.transform.position.z));
+                Vector3 start = new Vector3(Mathf.Round(transform.position.x), 1, Mathf.Round(transform.position.z));
+                Vector3 end = new Vector3(Mathf.Round(hit.transform.position.x), 1, Mathf.Round(hit.transform.position.z));
                 AStar(start, end);
-                    foreach (var p in pathList)
-                    {
-                        Debug.Log("Â·¾¶µã£º" + p);
-                    }
-                    isMoving = true;
-                    StartCoroutine(MoveByGrid());
+                isMoving = true;
+                StartCoroutine(MoveByGrid());
             }
         }
     }
@@ -152,18 +148,18 @@ public class Move : MonoBehaviour
     {
         foreach (var targetPos in pathList)
         {
-            while(Mathf.RoundToInt(transform.position.x) != Mathf.RoundToInt(targetPos.x)
-            || Mathf.RoundToInt(transform.position.z) != Mathf.RoundToInt(targetPos.z))
+            Vector3 Dir = targetPos - transform.position;
+            if (Dir.magnitude > 0.1f)
             {
-                Vector3 dir = targetPos - transform.position;
-                dir.y = 0;
-
-                if(dir.magnitude > 0.1f)
+                Quaternion targetRot = Quaternion.LookRotation(Dir);
+                while (Quaternion.Angle(transform.rotation,targetRot) > 1f)
                 {
-                    Quaternion quaternion = Quaternion.LookRotation(dir);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, quaternion, 10f * Time.deltaTime);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 10f * Time.deltaTime);
                 }
+            }
 
+            while (Vector3.Distance(transform.position, targetPos) > 0.01f)
+            {
                 transform.position = Vector3.MoveTowards(
                     transform.position,
                     targetPos,
