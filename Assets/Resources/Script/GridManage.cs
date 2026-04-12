@@ -7,12 +7,14 @@ public struct GridData
     public int y;
     public bool canWalk;
     public int defBonus;
+    public bool isMoveAble;
 }
 
 public class GridManage : MonoBehaviour
 {
     public static GridManage Instance;
     public GridData[,] gridArray;
+    public GameObject[,] grids;
     private void Awake()
     {
         Instance = this;
@@ -33,9 +35,11 @@ public class GridManage : MonoBehaviour
             {
                 GridData grid = gridArray[i, j];
                 Vector3 pos = new Vector3(grid.x, 0, grid.y);
-                Instantiate(prefab, pos, prefab.transform.rotation);
+                grids[i,j] = Instantiate(prefab, pos, prefab.transform.rotation);
             }
         }
+        /*Renderer rend = grids[1,2].GetComponent<Renderer>();
+        rend.material.color = Color.white;*/
     }
 
     public void LoadMapFromJson()
@@ -47,6 +51,7 @@ public class GridManage : MonoBehaviour
         int w = data.width; 
         int h = data.height;
         gridArray = new GridData[w, h];
+        grids = new GameObject[w, h];
 
         foreach(var grid in data.grids)
         {
@@ -56,14 +61,15 @@ public class GridManage : MonoBehaviour
                 x = grid.x,
                 y = grid.y,
                 canWalk = grid.canwalk,
-                defBonus = grid.defBonus
+                defBonus = grid.defBonus,
+                isMoveAble = grid.isMoveAble
             };
         }
         Debug.Log("地图读取完成！");
     }
 
     //用于生成一个map.json文件
-    /*private void SaveDataToJson()
+   /* private void SaveDataToJson()
     {
         MapSaveData data = new MapSaveData();
         data.width = 8;
@@ -71,16 +77,16 @@ public class GridManage : MonoBehaviour
         data.gridSize = 1;
         data.grids = new GridSaveData[8 * 8];
 
-        for(int i = 0; i < 8; i++)
+        for (int i = 0; i < 8; i++)
         {
-            for(int j = 0; j < 8; j++)
+            for (int j = 0; j < 8; j++)
             {
                 GridSaveData grid = new GridSaveData();
                 grid.x = i;
                 grid.y = j;
                 grid.canwalk = true;
-                grid.defBonus = 2;
-
+                grid.defBonus = 0;
+                grid.isMoveAble = false;
                 data.grids[i + j * 8] = grid;
             }
         }
@@ -91,4 +97,21 @@ public class GridManage : MonoBehaviour
         Debug.Log("保存成功");
     }*/
 
+    public void SetColor(Vector3 pos)
+    {
+        int x = (int)pos.x;
+        int y = (int)pos.z;
+        MaterialPropertyBlock block = new MaterialPropertyBlock();
+        Renderer rend = grids[x, y].GetComponent<Renderer>();
+        block.SetColor("_Color", Color.yellow);
+        rend.SetPropertyBlock(block);
+    }
+
+    public void ResetColor(Vector3 pos)
+    {
+        int x = (int)pos.x;
+        int y = (int)pos.z;
+        Renderer rend = grids[x, y].GetComponent<Renderer>();
+        rend.SetPropertyBlock(null);
+    }
 }

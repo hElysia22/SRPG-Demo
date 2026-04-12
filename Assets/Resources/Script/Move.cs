@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using static UnityEngine.GraphicsBuffer;
 
@@ -34,19 +35,34 @@ public class Move : MonoBehaviour
     public float moveSpeed = 5f;
     bool isMoving = false;
     public bool canPlay = false;
+    //能移动到X格以内的位置
+    /*public int canMove = 3;
+    //记录能移动到的格子
+    public List<Vector3> canMovePos = new List<Vector3>();
+    private bool[,] BFSvisited;
+    public bool isEnd = false;*/
 
     private void Start()
     {
         map = GridManage.Instance.gridArray;
+        //BFSvisited =  new bool[map.GetLength(0), map.GetLength(1)];
     }
     private void Update()
     {
+        /*if(canPlay&&!isEnd)
+        {
+            BFS();
+        }*/
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit)&& !isMoving && canPlay)
             {
+                /*if (!map[(int)(hit.transform.position.x), (int)(hit.transform.position.z)].isMoveAble)
+                {
+                    return;
+                }*/
                 Vector3 start = new Vector3(Mathf.Round(transform.position.x), 1, Mathf.Round(transform.position.z));
                 Vector3 end = new Vector3(Mathf.Round(hit.transform.position.x), 1, Mathf.Round(hit.transform.position.z));
                 AStar(start, end);
@@ -55,7 +71,82 @@ public class Move : MonoBehaviour
             }
         }
     }
+    //BFS搜索可移动的格子
+    /*public void BFS()
+    {
+        canMovePos.Clear();
+        System.Array.Clear(BFSvisited, 0, BFSvisited.Length);
 
+        int startX = Mathf.FloorToInt(transform.position.x);
+        int startY = Mathf.FloorToInt(transform.position.z);
+        Vector3 startPos = new Vector3(startX, 1, startY);
+
+        Queue<Vector3> queue = new Queue<Vector3>();
+        queue.Enqueue(startPos);
+        if (startX >= 0 && startX < map.GetLength(0) &&
+               startY >= 0 && startY < map.GetLength(1) &&
+               map[startX, startY].canWalk)
+        {
+            BFSvisited[startX, startY] = true;
+        }
+        (int x, int y)[] dirs = new (int, int)[] { (0, 1), (1, 0), (-1, 0), (0, -1) };
+
+        while (queue.Count > 0)
+        {
+            Vector3 currentPos = queue.Dequeue();
+            int x = (int)(currentPos.x);
+            int y = (int)(currentPos.z);
+            if (x >= 0 && x < map.GetLength(0) &&
+               y >= 0 && y < map.GetLength(1) &&
+               map[x, y].canWalk && !BFSvisited[x,y])
+            {
+                BFSvisited[x, y] = true;
+            }
+
+            int distance = (int)CalculateDis(startPos, currentPos);
+            if (distance > canMove)
+            {
+                continue;
+            }
+            canMovePos.Add(currentPos);
+            if (x >= 0 && x < map.GetLength(0) &&
+               y >= 0 && y < map.GetLength(1) && 
+               map[x,y].canWalk)
+            {
+                map[x, y].isMoveAble = true;
+            }    
+
+            foreach (var dir in dirs)
+            {
+                int newX = x + dir.x;
+                int newY = y + dir.y;
+
+                // 判断：地图内 + 可行走 + 未访问
+                if (newX >= 0 && newX < map.GetLength(0) &&
+               newY >= 0 && newY < map.GetLength(1) &&
+               map[newX, newY].canWalk && !BFSvisited[newX, newY])
+                {
+                    queue.Enqueue(new Vector3(newX, 1, newY));
+                }
+            }
+        }
+        Debug.Log("可移动格子数量：" + canMovePos.Count);
+        isEnd = true;
+    }*/
+
+    /*private void ResetAllMoveable()
+    {
+        for (int x = 0; x < map.GetLength(0); x++)
+        {
+            for (int y = 0; y < map.GetLength(1); y++)
+            {
+                map[x, y].isMoveAble = false;
+            }
+        }
+        isEnd = false;
+    }*/
+
+    //A*寻路
     public void AStar(Vector3 start, Vector3 end)
     {
         // 初始化清空
@@ -170,6 +261,7 @@ public class Move : MonoBehaviour
         }
         isMoving = false;
         GameManage.Instance.EndTurn();
+        //ResetAllMoveable();
     }
 
     public float CalculateDis(Vector3 start, Vector3 end)

@@ -17,4 +17,5 @@ public class GridSaveData
     public int y;
     public bool canwalk;
     public int defBonus;
+    public bool isMoveAble;
 }
