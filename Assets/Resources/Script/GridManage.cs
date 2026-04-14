@@ -1,117 +1,141 @@
-using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
-public struct GridData
-{
-    public int x;
-    public int y;
-    public bool canWalk;
-    public int defBonus;
-    public bool isMoveAble;
-}
 
-public class GridManage : MonoBehaviour
+public class GridManager : MonoBehaviour
 {
-    public static GridManage Instance;
-    public GridData[,] gridArray;
-    public GameObject[,] grids;
+    public static GridManager Instance;
+
+    // 地图数据（二维数组，运行时使用）
+    public GridData[,] grids;
+    private GameObject[,] gridObjects;
+
+    [Header("地图设置")]
+    public int gridSize = 16;       // 固定16x16
+    public Color normalColor = Color.white;    // 普通颜色
+    public Color highlightColor = Color.green; // 可移动高亮
+    public Color obstacleColor = Color.gray;   // 障碍物颜色
+
     private void Awake()
     {
         Instance = this;
         //SaveDataToJson();
-        LoadMapFromJson();
-        InitAllGrid();
+        LoadMapFromJson();    // 加载JSON地图数据
+        GenerateGridVisual(); // 生成格子对象
     }
 
-    public void InitAllGrid()
+    // 生成格子视觉表现
+    void GenerateGridVisual()
     {
-        GameObject prefab = Resources.Load<GameObject>("Prefab/Grid");
-        int width = gridArray.GetLength(0);
-        int height = gridArray.GetLength(1);
+        GameObject tilePrefab = Resources.Load<GameObject>("Prefab/Grid");
+        int width = grids.GetLength(0);
+        int height = grids.GetLength(1);
 
-        for(int i = 0; i < width; i++)
+        gridObjects = new GameObject[width, height];
+
+        for (int x = 0; x < width; x++)
         {
-            for(int j = 0; j < height; j++)
+            for (int y = 0; y < height; y++)
             {
-                GridData grid = gridArray[i, j];
-                Vector3 pos = new Vector3(grid.x, 0, grid.y);
-                grids[i,j] = Instantiate(prefab, pos, prefab.transform.rotation);
+                GridData data = grids[x, y];
+                Vector3 pos = new Vector3(data.x, 0, data.y);
+
+                GameObject tile = Instantiate(tilePrefab, pos, tilePrefab.transform.rotation, transform);
+                tile.name = $"Tile_{x}_{y}";
+                gridObjects[x, y] = tile;
+
+                Renderer rend = tile.GetComponent<Renderer>();
+                data.tileRenderer = rend;
+                rend.material.color = data.canWalk ? normalColor : obstacleColor;
             }
         }
-        /*Renderer rend = grids[1,2].GetComponent<Renderer>();
-        rend.material.color = Color.white;*/
+    }
+
+    // 获取指定坐标的格子
+    public GridData GetTile(int x, int y)
+    {
+        if (x >= 0 && x < gridSize && y >= 0 && y < gridSize)
+            return grids[x, y];
+        return null;
+    }
+    //将当前格子设为不可移动（防止角色之间碰撞和重叠）
+    public void SetMoveFalse(int x, int y)
+    {
+        if (x >= 0 && x < gridSize && y >= 0 && y < gridSize)
+            grids[x,y].canWalk = false;
+    }
+    //重置当前位置格子为可移动
+    public void ResetMove(int x, int y)
+    {
+        if (x >= 0 && x < gridSize && y >= 0 && y < gridSize)
+            grids[x, y].canWalk = true;
+    }
+
+    // 高亮可移动的格子
+    public void HighlightMoveableTiles(GridData[] moveableTiles)
+    {
+        ResetAllTileColor();
+        foreach (var tile in moveableTiles)
+        {
+            if (tile != null)
+                tile.tileRenderer.material.color = highlightColor;
+        }
+    }
+
+    // 重置所有格子颜色
+    public void ResetAllTileColor()
+    {
+        foreach (var tile in grids)
+        {
+            if (tile.tileRenderer != null)
+                tile.tileRenderer.material.color = tile.canWalk ? normalColor : obstacleColor;
+        }
     }
 
     public void LoadMapFromJson()
     {
         string path = Application.dataPath + "/map.json";
-        string json = System.IO.File.ReadAllText(path);
 
-        MapSaveData data = JsonUtility.FromJson<MapSaveData>(json);
-        int w = data.width; 
-        int h = data.height;
-        gridArray = new GridData[w, h];
-        grids = new GameObject[w, h];
-
-        foreach(var grid in data.grids)
+        if (!File.Exists(path))
         {
-            //给gridArray里面每一项赋值
-            gridArray[grid.x, grid.y] = new GridData
-            {
-                x = grid.x,
-                y = grid.y,
-                canWalk = grid.canwalk,
-                defBonus = grid.defBonus,
-                isMoveAble = grid.isMoveAble
-            };
+            Debug.LogError("未找到 map.json，自动生成 16x16 默认地图");
+            SaveDataToJson();
         }
-        Debug.Log("地图读取完成！");
+
+        string json = File.ReadAllText(path);
+        MapSaveData data = JsonUtility.FromJson<MapSaveData>(json);
+
+        grids = new GridData[data.width, data.height];
+
+        foreach (var gridData in data.grids)
+        {
+            grids[gridData.x, gridData.y] = gridData;
+        }
+
+        Debug.Log($"地图加载完成：{data.width}x{data.height}");
     }
 
-    //用于生成一个map.json文件
-   /* private void SaveDataToJson()
+    [ContextMenu("保存地图为JSON")]
+    public void SaveDataToJson()
     {
         MapSaveData data = new MapSaveData();
-        data.width = 8;
-        data.height = 8;
+        data.width = 16;
+        data.height = 16;
         data.gridSize = 1;
-        data.grids = new GridSaveData[8 * 8];
+        data.grids = new GridData[16 * 16];
 
-        for (int i = 0; i < 8; i++)
+        int index = 0;
+        for (int x = 0; x < 16; x++)
         {
-            for (int j = 0; j < 8; j++)
+            for (int y = 0; y < 16; y++)
             {
-                GridSaveData grid = new GridSaveData();
-                grid.x = i;
-                grid.y = j;
-                grid.canwalk = true;
-                grid.defBonus = 0;
-                grid.isMoveAble = false;
-                data.grids[i + j * 8] = grid;
+                data.grids[index++] = new GridData(x, y, true, null);
             }
         }
-        string json = JsonUtility.ToJson(data);
 
+        string json = JsonUtility.ToJson(data, true);
         string path = Application.dataPath + "/map.json";
-        System.IO.File.WriteAllText(path, json);
-        Debug.Log("保存成功");
-    }*/
-
-    public void SetColor(Vector3 pos)
-    {
-        int x = (int)pos.x;
-        int y = (int)pos.z;
-        MaterialPropertyBlock block = new MaterialPropertyBlock();
-        Renderer rend = grids[x, y].GetComponent<Renderer>();
-        block.SetColor("_Color", Color.yellow);
-        rend.SetPropertyBlock(block);
-    }
-
-    public void ResetColor(Vector3 pos)
-    {
-        int x = (int)pos.x;
-        int y = (int)pos.z;
-        Renderer rend = grids[x, y].GetComponent<Renderer>();
-        rend.SetPropertyBlock(null);
+        File.WriteAllText(path, json);
+        Debug.Log("16x16 地图已保存：" + path);
     }
 }
