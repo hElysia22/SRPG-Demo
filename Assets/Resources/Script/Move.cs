@@ -2,13 +2,27 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Move : MonoBehaviour
 {
+    [Header("角色设置")]
     public float moveSpeed = 5f;
+    public int moveCost = 3;
+    
+    [Header("当前坐标")]
+    public int currentX;
+    public int currentY;
+
     private bool isMoving = false;
     public bool canPlay = false;
+    private GridData[] moveableTiles;
 
+    public void UpdateCurrentPosition()
+    {
+        currentX = Mathf.RoundToInt(transform.position.x);
+        currentY = Mathf.RoundToInt(transform.position.z);
+    }
 
     private void Update()
     {
@@ -20,10 +34,22 @@ public class Move : MonoBehaviour
                 // 获取起点和终点
                 Vector3 start = new Vector3(transform.position.x, 1, transform.position.z);
                 Vector3 end = new Vector3(hit.transform.position.x, 1, hit.transform.position.z);
-                int startX = Mathf.RoundToInt(start.x);
-                int startY = Mathf.RoundToInt(start.z);
+                int endX = Mathf.RoundToInt(end.x);
+                int endY = Mathf.RoundToInt(end.z);
+                UpdateCurrentPosition();
+                GridData endTile = GridManager.Instance.GetTile(endX, endY);
+                if(!GridManager.Instance.isHighLight(endTile))
+                {
+                    Debug.Log("超出可移动范围");
+                    return;
+                }
+                if(endTile.canWalk == false)
+                {
+                    Debug.Log("无法移动到目标位置！");
+                    return;
+                }
                 // 调用A*寻路
-                GridManager.Instance.ResetMove(startX, startY);
+                GridManager.Instance.ResetMove(currentX, currentY);
                 List<Vector3> path = AStar.FindPath(start, end);
 
                 if (path.Count > 0)
@@ -67,8 +93,52 @@ public class Move : MonoBehaviour
 
         isMoving = false;
         GameManage.Instance.EndTurn();
-        int endX = Mathf.RoundToInt(transform.position.x);
-        int endY = Mathf.RoundToInt(transform.position.z);
-        GridManager.Instance.SetMoveFalse(endX, endY);
+        UpdateCurrentPosition();
+        GridManager.Instance.SetMoveFalse(currentX, currentY);
+    }
+
+    public void CalculateMoveableGrid()
+    {
+        UpdateCurrentPosition();
+        List<GridData> Tiles = new List<GridData>();
+        HashSet<GridData> visited = new HashSet<GridData>();
+        Queue<(int x, int y, int reminCost)> queue = new Queue<(int x, int y, int reminCost)>();
+
+        GridData startTile = GridManager.Instance.GetTile(currentX, currentY);
+        queue.Enqueue((currentX, currentY, moveCost));
+        visited.Add(startTile);
+        (int x, int y)[] dirs = { (0, 1), (1, 0), (-1, 0), (0, -1) };
+
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            int x = current.x;
+            int y = current.y;
+            int remin = current.reminCost;
+
+            if(remin <= 0)
+            {
+                continue;
+            }
+
+            foreach ( var dir in dirs )
+            {
+                int newX = x + dir.x;
+                int newY = y + dir.y;
+                GridData neighborTile = GridManager.Instance.GetTile(newX, newY);
+
+                if(neighborTile == null || visited.Contains(neighborTile) || !neighborTile.canWalk)
+                {
+                    continue;
+                }
+
+                visited.Add(neighborTile);
+                Tiles.Add(neighborTile);
+                queue.Enqueue((newX, newY, remin - 1));
+            }
+        }
+        moveableTiles = Tiles.ToArray();
+        GridManager.Instance.HighlightMoveableTiles(moveableTiles);
     }
 }

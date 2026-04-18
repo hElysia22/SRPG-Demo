@@ -24,4 +24,13 @@ public class GridData
         this.canWalk = isWalkable;
         this.tileRenderer = renderer;
     }
+    public override bool Equals(object obj)
+    {
+        return obj is GridData grid && x == grid.x && y == grid.y;
+    }
+
+    public override int GetHashCode()
+    {
+        return System.HashCode.Combine(x, y);
+    }
 }

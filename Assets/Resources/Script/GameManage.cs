@@ -22,6 +22,7 @@ public class GameManage : MonoBehaviour
         var move = Players[currentIndex].GetComponent<Move>();
         if (move != null)
         {
+            move.CalculateMoveableGrid();
             move.canPlay = true;
         }
     }

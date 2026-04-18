@@ -92,6 +92,11 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    public bool isHighLight(GridData tile)
+    {
+        return tile.tileRenderer.material.color == highlightColor;
+    }
+
     public void LoadMapFromJson()
     {
         string path = Application.dataPath + "/map.json";
