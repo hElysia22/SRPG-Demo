@@ -25,6 +25,15 @@ public class GameManage : MonoBehaviour
             move.CalculateMoveableGrid();
             move.canPlay = true;
         }
+        else
+        {
+            currentIndex++;
+            if (currentIndex >= Players.Count)
+            {
+                currentIndex = 0;
+            }
+            StartCurrentTurn();
+        }
     }
 
     public void EndTurn()

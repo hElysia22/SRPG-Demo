@@ -6,9 +6,11 @@ using UnityEngine.UI;
 
 public class Move : MonoBehaviour
 {
+    public Animator animator;
+
     [Header("角色设置")]
-    public float moveSpeed = 5f;
-    public int moveCost = 3;
+    public float moveSpeed = 0.1f;
+    public int moveCost = 6;
     
     [Header("当前坐标")]
     public int currentX;
@@ -24,6 +26,11 @@ public class Move : MonoBehaviour
         currentY = Mathf.RoundToInt(transform.position.z);
     }
 
+    private void Start()
+    {
+        animator = transform.GetComponent<Animator>();
+    }
+
     private void Update()
     {
         if (Input.GetMouseButtonDown(0) && !isMoving && canPlay)
@@ -32,8 +39,8 @@ public class Move : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
                 // 获取起点和终点
-                Vector3 start = new Vector3(transform.position.x, 1, transform.position.z);
-                Vector3 end = new Vector3(hit.transform.position.x, 1, hit.transform.position.z);
+                Vector3 start = new Vector3(transform.position.x, 0, transform.position.z);
+                Vector3 end = new Vector3(hit.transform.position.x, 0, hit.transform.position.z);
                 int endX = Mathf.RoundToInt(end.x);
                 int endY = Mathf.RoundToInt(end.z);
                 UpdateCurrentPosition();
@@ -80,14 +87,17 @@ public class Move : MonoBehaviour
                     transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 10f * Time.deltaTime);
                     yield return null;
                 }
+                transform.rotation = targetRot;
             }
 
             // 移动
             while (Vector3.Distance(transform.position, targetPos) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPos, moveSpeed * Time.deltaTime);
+                animator.SetFloat("Speed", moveSpeed);
                 yield return null;
             }
+            animator.SetFloat("Speed", 0);
             transform.position = targetPos;
         }
 

@@ -85,7 +85,7 @@ public static class AStar
 
         while (parentMap.ContainsKey(current))
         {
-            path.Add(new Vector3(current.x, 1, current.y));
+            path.Add(new Vector3(current.x, 0, current.y));
             current = parentMap[current];
         }
 
