@@ -20,10 +20,34 @@ public class GameManage : MonoBehaviour
     public void StartCurrentTurn()
     {
         var move = Players[currentIndex].GetComponent<Move>();
-        if (move != null)
+        if (move != null && move.enabled)
         {
             move.CalculateMoveableGrid();
-            move.canPlay = true;
+            move.canMove = true;
+        }
+        else
+        {
+            currentIndex++;
+            if (currentIndex >= Players.Count)
+            {
+                currentIndex = 0;
+            }
+            StartCurrentTurn();
+        }
+    }
+
+    public void StartAttackTurn()
+    {
+        var move = Players[currentIndex].GetComponent<Move>();
+        if (move != null && move.enabled)
+        {
+            move.canMove = false;
+        }
+        var attack = Players[currentIndex].GetComponent<Attack>();
+        if (attack != null && attack.enabled)
+        {
+            attack.CalculateAttackableGrid();
+            attack.canAttack = true;
         }
         else
         {
@@ -39,9 +63,11 @@ public class GameManage : MonoBehaviour
     public void EndTurn()
     {
         var move = Players[currentIndex].GetComponent<Move>();
-        if (move != null)
+        var attack = Players[currentIndex].GetComponent<Attack>();
+        if (move != null && move.enabled || attack != null && attack.enabled)
         {
-            move.canPlay = false;
+            move.canMove = false;
+            attack.canAttack = false;
         }
         currentIndex++;
         if(currentIndex >= Players.Count)

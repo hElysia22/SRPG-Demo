@@ -17,7 +17,7 @@ public class Move : MonoBehaviour
     public int currentY;
 
     private bool isMoving = false;
-    public bool canPlay = false;
+    public bool canMove = false;
     private GridData[] moveableTiles;
 
     public void UpdateCurrentPosition()
@@ -33,7 +33,7 @@ public class Move : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0) && !isMoving && canPlay)
+        if (Input.GetMouseButtonDown(0) && !isMoving && canMove)
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
@@ -79,6 +79,7 @@ public class Move : MonoBehaviour
         {
             // ×ªÏò
             Vector3 dir = targetPos - transform.position;
+            dir.y = 0;
             if (dir.magnitude > 0.1f)
             {
                 Quaternion targetRot = Quaternion.LookRotation(dir);
@@ -89,7 +90,7 @@ public class Move : MonoBehaviour
                 }
                 transform.rotation = targetRot;
             }
-
+            
             // ÒÆ¶¯
             while (Vector3.Distance(transform.position, targetPos) > 0.01f)
             {
@@ -97,11 +98,11 @@ public class Move : MonoBehaviour
                 animator.SetFloat("Speed", moveSpeed);
                 yield return null;
             }
-            animator.SetFloat("Speed", 0);
             transform.position = targetPos;
         }
-
+        animator.SetFloat("Speed", 0);
         isMoving = false;
+        //GameManage.Instance.StartAttackTurn();
         GameManage.Instance.EndTurn();
         UpdateCurrentPosition();
         GridManager.Instance.SetMoveFalse(currentX, currentY);
