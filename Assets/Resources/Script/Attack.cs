@@ -44,6 +44,10 @@ public class Attack : MonoBehaviour
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
+                if(hit.collider.gameObject.layer == 5)
+                {
+                    return;
+                }
                 Vector3 end = new Vector3(hit.transform.position.x, 0, hit.transform.position.z);
                 int endX = Mathf.RoundToInt(end.x);
                 int endY = Mathf.RoundToInt(end.z);
@@ -51,6 +55,7 @@ public class Attack : MonoBehaviour
                 if (hit.collider.gameObject.layer == 6 && GridManager.Instance.isHighLight(endTile))
                 {
                     isAttacking = true;
+                    GameManage.Instance.EndAttackTurn();
                     //执行攻击动画
                     animator.SetBool("Attack", true);
                     //调用掉血代码
@@ -59,6 +64,7 @@ public class Attack : MonoBehaviour
                 else
                 {
                     Debug.Log("未选中敌人或超出攻击范围");
+                    return;
                 }
             }
             //结束攻击

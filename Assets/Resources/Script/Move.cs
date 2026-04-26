@@ -38,6 +38,11 @@ public class Move : MonoBehaviour
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
+                if (hit.collider.gameObject.layer == 5)
+                {
+                    return;
+                }
+
                 // 获取起点和终点
                 Vector3 start = new Vector3(transform.position.x, 0, transform.position.z);
                 Vector3 end = new Vector3(hit.transform.position.x, 0, hit.transform.position.z);
@@ -63,6 +68,7 @@ public class Move : MonoBehaviour
                 {
                     isMoving = true;
                     StartCoroutine(MoveByGrid(path));
+                    GameManage.Instance.EndMoveTurn();
                 }
                 else
                 {
@@ -102,8 +108,7 @@ public class Move : MonoBehaviour
         }
         animator.SetFloat("Speed", 0);
         isMoving = false;
-        //GameManage.Instance.StartAttackTurn();
-        GameManage.Instance.EndTurn();
+        GameManage.Instance.StartAttackTurn();
         UpdateCurrentPosition();
         GridManager.Instance.SetMoveFalse(currentX, currentY);
     }
