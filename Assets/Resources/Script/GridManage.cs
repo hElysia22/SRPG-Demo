@@ -28,6 +28,7 @@ public class GridManager : MonoBehaviour
     void GenerateGridVisual()
     {
         GameObject tilePrefab = Resources.Load<GameObject>("Prefab/Grid");
+        GameObject obstraclePrefab = Resources.Load<GameObject>("Prefab/Obstracle");
         int width = grids.GetLength(0);
         int height = grids.GetLength(1);
 
@@ -38,15 +39,24 @@ public class GridManager : MonoBehaviour
             for (int y = 0; y < height; y++)
             {
                 GridData data = grids[x, y];
-                Vector3 pos = new Vector3(data.x, 0, data.y);
+                Vector3 pos = new Vector3(data.x, -1, data.y);
 
-                GameObject tile = Instantiate(tilePrefab, pos, tilePrefab.transform.rotation, transform);
-                tile.name = $"Tile_{x}_{y}";
-                gridObjects[x, y] = tile;
+                if (grids[x, y].type == 0) 
+                {
+                    GameObject tile = Instantiate(tilePrefab, pos, tilePrefab.transform.rotation, transform);
+                    tile.name = $"Tile_{x}_{y}";
+                    gridObjects[x, y] = tile;
 
-                Renderer rend = tile.GetComponent<Renderer>();
-                data.tileRenderer = rend;
-                rend.material.color = data.canWalk ? normalColor : obstacleColor;
+                    Renderer rend = tile.GetComponent<Renderer>();
+                    data.tileRenderer = rend;
+                    rend.material.color = normalColor;
+                }
+                else if (grids[x, y].type == 1)
+                {
+                    GameObject obstracle = Instantiate(obstraclePrefab, pos, obstraclePrefab.transform.rotation, transform);
+                    obstracle.name = $"obstracle_{x}_{y}";
+                    gridObjects[x, y] = obstracle;
+                }
             }
         }
     }
@@ -134,7 +144,7 @@ public class GridManager : MonoBehaviour
         {
             for (int y = 0; y < 16; y++)
             {
-                data.grids[index++] = new GridData(x, y, true, null);
+                data.grids[index++] = new GridData(x, y, true, null, 0);
             }
         }
 
