@@ -44,10 +44,6 @@ public class Attack : MonoBehaviour
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                if(hit.collider.gameObject.layer == 5)
-                {
-                    return;
-                }
                 Vector3 end = new Vector3(hit.transform.position.x, 0, hit.transform.position.z);
                 int endX = Mathf.RoundToInt(end.x);
                 int endY = Mathf.RoundToInt(end.z);
@@ -57,9 +53,13 @@ public class Attack : MonoBehaviour
                     isAttacking = true;
                     GameManage.Instance.EndAttackTurn();
                     //执行攻击动画
-                    animator.SetBool("Attack", true);
+                    animator.SetTrigger("Attack");
                     //调用掉血代码
-                    
+                    Blood blood =  hit.collider.gameObject.GetComponentInParent<Blood>();
+                    if(blood != null)
+                    {
+                        blood.ReduceHp(attack);
+                    }
                 }
                 else
                 {
@@ -68,7 +68,6 @@ public class Attack : MonoBehaviour
                 }
             }
             //结束攻击
-            animator.SetBool("Attack", false);
             isAttacking = false;
             GameManage.Instance.EndTurn();
         }
