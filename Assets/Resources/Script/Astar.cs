@@ -65,11 +65,13 @@ public static class AStar
                 neighborNode.hCost = ManhattanDistance(newX, newY, endX, endY);
 
                 // 更新节点
-                if (!openList.Contains(neighborNode) || newGCost < neighborNode.gCost)
+                if (!openList.Contains(neighborNode))
                 {
                     parentMap[neighborNode] = currentNode;
                     if (!openList.Contains(neighborNode))
+                    {
                         openList.Add(neighborNode);
+                    }
                 }
             }
         }

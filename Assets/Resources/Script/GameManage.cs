@@ -24,7 +24,15 @@ public class GameManage : MonoBehaviour
 
     public void StartCurrentTurn()
     {
-        var move = Players[currentIndex].GetComponent<Move>();
+        var current = Players[currentIndex];
+        EnemyAI enemy = current.GetComponent<EnemyAI>();
+        if(enemy != null )
+        {
+            enemy.StartEnemyTurn();
+            return;
+        }
+
+        var move = current.GetComponent<Move>();
         if (move != null && move.enabled)
         {
             move.CalculateMoveableGrid();
@@ -33,11 +41,7 @@ public class GameManage : MonoBehaviour
         }
         else
         {
-            currentIndex++;
-            if (currentIndex >= Players.Count)
-            {
-                currentIndex = 0;
-            }
+            NextTurn();
             StartCurrentTurn();
         }
     }
@@ -63,11 +67,7 @@ public class GameManage : MonoBehaviour
         }
         else
         {
-            currentIndex++;
-            if (currentIndex >= Players.Count)
-            {
-                currentIndex = 0;
-            }
+            NextTurn();
             StartCurrentTurn();
         }
     }
@@ -93,12 +93,15 @@ public class GameManage : MonoBehaviour
             btn1.gameObject.SetActive(false);
             btn2.gameObject.SetActive(false);
         }
-        currentIndex++;
-        if(currentIndex >= Players.Count)
-        {
-            currentIndex = 0;
-        }
+        NextTurn();
         StartCurrentTurn();
+    }
+
+    public void NextTurn()
+    {
+        currentIndex++;
+        if (currentIndex >= Players.Count)
+            currentIndex = 0;
     }
 
 }
