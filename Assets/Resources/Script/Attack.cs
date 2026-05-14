@@ -50,16 +50,7 @@ public class Attack : MonoBehaviour
                 GridData endTile = GridManager.Instance.GetTile(endX, endY);
                 if (hit.collider.gameObject.layer == 6 && GridManager.Instance.isHighLight(endTile))
                 {
-                    isAttacking = true;
-                    GameManage.Instance.EndAttackTurn();
-                    //执行攻击动画
-                    animator.SetTrigger("Attack");
-                    //调用掉血代码
-                    Blood blood =  hit.collider.gameObject.GetComponentInParent<Blood>();
-                    if(blood != null)
-                    {
-                        blood.ReduceHp(attack);
-                    }
+                    StartCoroutine(PlayerAttackRoutine(hit.collider.gameObject));
                 }
                 else
                 {
@@ -67,10 +58,40 @@ public class Attack : MonoBehaviour
                     return;
                 }
             }
-            //结束攻击
-            isAttacking = false;
-            GameManage.Instance.EndTurn();
+            
         }
+    }
+
+    IEnumerator PlayerAttackRoutine(GameObject enemyObject)
+    {
+        isAttacking = true;
+        GameManage.Instance.EndAttackTurn();
+
+        Vector3 dir = enemyObject.transform.position - transform.position;
+        dir.y = 0;
+        if (dir.magnitude > 0.1f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(dir);
+            while (Quaternion.Angle(transform.rotation, targetRot) > 1f)
+            {
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 10f * Time.deltaTime);
+                yield return null;
+            }
+            transform.rotation = targetRot;
+        }
+        //执行攻击动画
+        animator.SetTrigger("Attack");
+        yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length);
+        //调用掉血代码
+        Blood blood = enemyObject.GetComponentInParent<Blood>();
+        if (blood != null)
+        {
+            blood.ReduceHp(attack);
+        }
+
+        //结束攻击
+        isAttacking = false;
+        GameManage.Instance.EndTurn();
     }
 
     public void CalculateAttackableGrid()

@@ -6,11 +6,16 @@ public class EnemyAI : MonoBehaviour
 {
     public int moveCost = 3;
     public int attackRange = 2;
+    public float attack = 20;
     public Animator enemyAnim;
     public float moveSpeed = 3f;
 
     private GridData[] moveableTiles;
-    private GridData[] attackableTiles;
+
+    private void Start()
+    {
+        enemyAnim = GetComponent<Animator>();
+    }
 
     // 自动找到最近的玩家（从GameManage的列表里找）
     private GameObject FindNearestPlayer()
@@ -82,12 +87,56 @@ public class EnemyAI : MonoBehaviour
 
         yield return new WaitForSeconds(0.2f);
         //攻击逻辑
-        curX = Mathf.RoundToInt(transform.position.x);
-        curY = Mathf.RoundToInt(transform.position.z);
-        attackableTiles = CalculateEnemyGrid(curX, curY, attackRange);
+        if(targetPlayer == null)
+        {
+            targetPlayer = FindNearestPlayer();
+        }
+        if (targetPlayer != null)
+        {
+            // 检查玩家是否在攻击范围内
+            Debug.Log(IsPlayerInAttackRange(targetPlayer));
+            if (IsPlayerInAttackRange(targetPlayer))
+            {
+                //面向敌人
+                Vector3 dir = targetPlayer.transform.position - transform.position;
+                dir.y = 0;
+                if (dir.magnitude > 0.1f)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(dir);
+                    while (Quaternion.Angle(transform.rotation, targetRot) > 1f)
+                    {
+                        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 10f * Time.deltaTime);
+                        yield return null;
+                    }
+                    transform.rotation = targetRot;
+                }
+                //攻击动画
+                enemyAnim.SetTrigger("Attack");
+                yield return new WaitForSeconds(enemyAnim.GetCurrentAnimatorStateInfo(0).length);
 
-
+                //掉血逻辑
+                targetPlayer.transform.GetComponent<Blood>().ReduceHp(attack);
+                yield return null;
+            }
+        }
+        
+        // 结束回合
         GameManage.Instance.EndTurn();
+    }
+
+    // 判断玩家是否在攻击范围内
+    private bool IsPlayerInAttackRange(GameObject player)
+    {
+        int ex = Mathf.RoundToInt(transform.position.x);
+        int ey = Mathf.RoundToInt(transform.position.z);
+
+        int px = Mathf.RoundToInt(player.transform.position.x);
+        int py = Mathf.RoundToInt(player.transform.position.z);
+
+        // 曼哈顿距离
+        int distance = Mathf.Abs(ex - px) + Mathf.Abs(ey - py);
+
+        return distance <= attackRange;
     }
 
     IEnumerator EnemyMoveCoroutine(List<Vector3> pathList)
