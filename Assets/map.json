@@ -747,8 +747,8 @@
             "x": 4,
             "y": 10,
             "canWalk": true,
-            "type": 0,
-            "defBonus": 0,
+            "type": 2,
+            "defBonus": 10,
             "tileRenderer": {
                 "instanceID": 0
             }
@@ -757,8 +757,8 @@
             "x": 4,
             "y": 11,
             "canWalk": true,
-            "type": 0,
-            "defBonus": 0,
+            "type": 2,
+            "defBonus": 10,
             "tileRenderer": {
                 "instanceID": 0
             }
@@ -837,8 +837,8 @@
             "x": 5,
             "y": 3,
             "canWalk": true,
-            "type": 0,
-            "defBonus": 0,
+            "type": 2,
+            "defBonus": 10,
             "tileRenderer": {
                 "instanceID": 0
             }

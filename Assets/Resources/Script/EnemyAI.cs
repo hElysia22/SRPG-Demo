@@ -10,6 +10,7 @@ public class EnemyAI : MonoBehaviour
     public Animator enemyAnim;
     public float moveSpeed = 3f;
 
+    GameObject targetPlayer;
     private GridData[] moveableTiles;
 
     private void Start()
@@ -26,7 +27,7 @@ public class EnemyAI : MonoBehaviour
 
         foreach (var player in players)
         {
-            // 跳过敌人自己（防止把自己当玩家）
+            
             if (player.GetComponent<EnemyAI>() != null)
                 continue;
 
@@ -52,7 +53,7 @@ public class EnemyAI : MonoBehaviour
         yield return new WaitForSeconds(0.4f);
 
         // 自动获取最近玩家
-        GameObject targetPlayer = FindNearestPlayer();
+        targetPlayer = FindNearestPlayer();
 
         int curX = Mathf.RoundToInt(transform.position.x);
         int curY = Mathf.RoundToInt(transform.position.z);
@@ -87,10 +88,6 @@ public class EnemyAI : MonoBehaviour
 
         yield return new WaitForSeconds(0.2f);
         //攻击逻辑
-        if(targetPlayer == null)
-        {
-            targetPlayer = FindNearestPlayer();
-        }
         if (targetPlayer != null)
         {
             // 检查玩家是否在攻击范围内

@@ -29,6 +29,7 @@ public class GridManager : MonoBehaviour
     {
         GameObject tilePrefab = Resources.Load<GameObject>("Prefab/Grid");
         GameObject obstraclePrefab = Resources.Load<GameObject>("Prefab/Obstracle");
+        GameObject defendPrefab = Resources.Load<GameObject>("Prefab/DefendGrid");
         int width = grids.GetLength(0);
         int height = grids.GetLength(1);
 
@@ -56,6 +57,16 @@ public class GridManager : MonoBehaviour
                     GameObject obstracle = Instantiate(obstraclePrefab, pos, obstraclePrefab.transform.rotation, transform);
                     obstracle.name = $"obstracle_{x}_{y}";
                     gridObjects[x, y] = obstracle;
+                }
+                else if (grids[x, y].type == 2)
+                {
+                    GameObject defend = Instantiate(defendPrefab, pos, defendPrefab.transform.rotation, transform);
+                    defend.name = $"Defend_{x}_{y}";
+                    gridObjects[x, y] = defend;
+
+                    Renderer rend = defend.GetComponent<Renderer>();
+                    data.tileRenderer = rend;
+                    rend.material.color = normalColor;
                 }
             }
         }

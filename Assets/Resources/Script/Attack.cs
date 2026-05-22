@@ -66,7 +66,7 @@ public class Attack : MonoBehaviour
     {
         isAttacking = true;
         GameManage.Instance.EndAttackTurn();
-
+        //ÃæÏòµÐÈË
         Vector3 dir = enemyObject.transform.position - transform.position;
         dir.y = 0;
         if (dir.magnitude > 0.1f)
