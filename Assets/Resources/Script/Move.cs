@@ -1,86 +1,138 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class Move : MonoBehaviour
 {
+    [Header("移动设置")]
+    public float moveSpeed = 3f;
     public Animator animator;
 
-    [Header("角色设置")]
-    public float moveSpeed = 0.1f;
-    public int moveCost = 6;
-    
-    [Header("当前坐标")]
-    public int currentX;
-    public int currentY;
+    private CharacterStats stats;
+    private int currentX;
+    private int currentY;
+    private bool isMoving;
+    private bool canMove;
 
-    private bool isMoving = false;
-    public bool canMove = false;
-    private GridData[] moveableTiles;
+    private void Awake()
+    {
+        stats = GetComponent<CharacterStats>();
+        if (animator == null)
+            animator = GetComponent<Animator>();
 
+        if (GameManage.Instance != null)
+        {
+            GameManage.Instance.OnUnitPhaseChanged += OnUnitPhaseChanged;
+            GameManage.Instance.OnUnitTurnEnd += OnUnitTurnEnd;
+        }
+    }
+
+    private void Start()
+    {
+        UpdateCurrentPosition();
+        if (GameManage.Instance != null && GameManage.Instance.CurrentUnit == stats)
+        {
+            OnUnitPhaseChanged(stats, GameManage.Instance.CurrentPhase);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (GameManage.Instance != null)
+        {
+            GameManage.Instance.OnUnitPhaseChanged -= OnUnitPhaseChanged;
+            GameManage.Instance.OnUnitTurnEnd -= OnUnitTurnEnd;
+        }
+    }
+
+    private void Update()
+    {
+        if (!canMove || isMoving) return;
+        if (EventSystem.current.IsPointerOverGameObject()) return;
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
+                int endX = Mathf.RoundToInt(hit.point.x);
+                int endY = Mathf.RoundToInt(hit.point.z);
+                GridData endTile = GridManager.Instance.GetTile(endX, endY);
+
+                if (endTile == null || !GridManager.Instance.IsHighlight(endTile))
+                    return;
+
+                // 开始移动：释放原格子
+                GridManager.Instance.ResetMove(currentX, currentY);
+                List<Vector3> path = AStar.FindPath(transform.position, hit.point);
+
+                if (path.Count > 0)
+                {
+                    canMove = false;
+                    StartCoroutine(MoveByGrid(path));
+                }
+                else
+                {
+                    // 寻路失败，重新占用原格子
+                    GridManager.Instance.SetMoveFalse(currentX, currentY);
+                }
+            }
+        }
+    }
+
+    // 阶段变化响应
+    private void OnUnitPhaseChanged(CharacterStats unit, UnitPhase phase)
+    {
+        if (unit != stats) return;
+
+        if (phase == UnitPhase.Move)
+        {
+            canMove = true;
+            CalculateMoveableGrid();
+        }
+        else
+        {
+            canMove = false;
+        }
+    }
+
+    // 回合结束响应
+    private void OnUnitTurnEnd(CharacterStats unit)
+    {
+        if (unit != stats) return;
+        canMove = false;
+        isMoving = false;
+    }
+
+    // 计算可移动范围
+    public void CalculateMoveableGrid()
+    {
+        UpdateCurrentPosition();
+        int cost = stats != null ? stats.moveCost : 3;
+        GridData[] tiles = GridRangeHelper.CalculateMoveRange(currentX, currentY, cost);
+        GridManager.Instance.HighlightMoveableTiles(tiles);
+        Debug.Log($"[{gameObject.name}] 计算可移动格子数：{tiles.Length}");
+    }
+
+    // 更新当前坐标
     public void UpdateCurrentPosition()
     {
         currentX = Mathf.RoundToInt(transform.position.x);
         currentY = Mathf.RoundToInt(transform.position.z);
     }
 
-    private void Start()
+    // 格子移动协程
+    IEnumerator MoveByGrid(List<Vector3> pathList)
     {
-        animator = transform.GetComponent<Animator>();
-    }
+        isMoving = true;
+        animator.SetFloat("Speed", moveSpeed);
 
-    private void Update()
-    {
-        if (Input.GetMouseButtonDown(0) && !isMoving && canMove)
-        {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                // 获取起点和终点
-                Vector3 start = new Vector3(transform.position.x, 0, transform.position.z);
-                Vector3 end = new Vector3(hit.transform.position.x, 0, hit.transform.position.z);
-                int endX = Mathf.RoundToInt(end.x);
-                int endY = Mathf.RoundToInt(end.z);
-                UpdateCurrentPosition();
-                GridData endTile = GridManager.Instance.GetTile(endX, endY);
-                if(!GridManager.Instance.isHighLight(endTile))
-                {
-                    Debug.Log("超出可移动范围");
-                    return;
-                }
-                if(endTile.canWalk == false)
-                {
-                    Debug.Log("无法移动到目标位置！");
-                    return;
-                }
-                // 调用A*寻路
-                GridManager.Instance.ResetMove(currentX, currentY);
-                List<Vector3> path = AStar.FindPath(start, end);
-
-                if (path.Count > 0)
-                {
-                    isMoving = true;
-                    StartCoroutine(MoveByGrid(path));
-                    GameManage.Instance.EndMoveTurn();
-                }
-                else
-                {
-                    Debug.Log("无法移动到目标位置！");
-                }
-            }
-        }
-    }
-
-    // 协程移动
-    private IEnumerator MoveByGrid(List<Vector3> pathList)
-    {
         foreach (var targetPos in pathList)
         {
-            // 转向
             Vector3 dir = targetPos - transform.position;
             dir.y = 0;
+
             if (dir.magnitude > 0.1f)
             {
                 Quaternion targetRot = Quaternion.LookRotation(dir);
@@ -89,67 +141,22 @@ public class Move : MonoBehaviour
                     transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 10f * Time.deltaTime);
                     yield return null;
                 }
-                transform.rotation = targetRot;
             }
-            
-            // 移动
+
             while (Vector3.Distance(transform.position, targetPos) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPos, moveSpeed * Time.deltaTime);
-                animator.SetFloat("Speed", moveSpeed);
                 yield return null;
             }
             transform.position = targetPos;
         }
+
         animator.SetFloat("Speed", 0);
-        isMoving = false;
-        GameManage.Instance.StartAttackTurn();
         UpdateCurrentPosition();
         GridManager.Instance.SetMoveFalse(currentX, currentY);
-    }
+        isMoving = false;
 
-    public void CalculateMoveableGrid()
-    {
-        UpdateCurrentPosition();
-        List<GridData> Tiles = new List<GridData>();
-        HashSet<GridData> visited = new HashSet<GridData>();
-        Queue<(int x, int y, int reminCost)> queue = new Queue<(int x, int y, int reminCost)>();
-
-        GridData startTile = GridManager.Instance.GetTile(currentX, currentY);
-        queue.Enqueue((currentX, currentY, moveCost));
-        visited.Add(startTile);
-        (int x, int y)[] dirs = { (0, 1), (1, 0), (-1, 0), (0, -1) };
-
-
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-            int x = current.x;
-            int y = current.y;
-            int remin = current.reminCost;
-
-            if(remin <= 0)
-            {
-                continue;
-            }
-
-            foreach ( var dir in dirs )
-            {
-                int newX = x + dir.x;
-                int newY = y + dir.y;
-                GridData neighborTile = GridManager.Instance.GetTile(newX, newY);
-
-                if(neighborTile == null || visited.Contains(neighborTile) || !neighborTile.canWalk)
-                {
-                    continue;
-                }
-
-                visited.Add(neighborTile);
-                Tiles.Add(neighborTile);
-                queue.Enqueue((newX, newY, remin - 1));
-            }
-        }
-        moveableTiles = Tiles.ToArray();
-        GridManager.Instance.HighlightMoveableTiles(moveableTiles);
+        // 移动结束，切换到攻击阶段
+        GameManage.Instance.ChangePhase(UnitPhase.Attack);
     }
 }

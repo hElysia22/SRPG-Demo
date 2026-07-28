@@ -3,24 +3,18 @@ using UnityEngine;
 
 public static class AStar
 {
-    // 四向移动方向（上下左右）
     private static readonly (int x, int y)[] dirs = { (0, 1), (1, 0), (-1, 0), (0, -1) };
 
     public static List<Vector3> FindPath(Vector3 startWorldPos, Vector3 endWorldPos)
     {
-        
         List<Vector3> path = new List<Vector3>();
         GridData[,] map = GridManager.Instance.grids;
-        int mapWidth = map.GetLength(0);
-        int mapHeight = map.GetLength(1);
 
-        // 世界坐标转网格坐标
         int startX = Mathf.RoundToInt(startWorldPos.x);
         int startY = Mathf.RoundToInt(startWorldPos.z);
         int endX = Mathf.RoundToInt(endWorldPos.x);
         int endY = Mathf.RoundToInt(endWorldPos.z);
 
-        // 边界/障碍物判断
         if (!IsValid(startX, startY) || !IsValid(endX, endY))
             return path;
 
@@ -29,57 +23,50 @@ public static class AStar
         Dictionary<PathNode, PathNode> parentMap = new Dictionary<PathNode, PathNode>();
 
         PathNode startNode = new PathNode(startX, startY, 0, ManhattanDistance(startX, startY, endX, endY));
-        PathNode endNode = new PathNode(endX, endY, 0, 0);
-
         openList.Add(startNode);
 
         while (openList.Count > 0)
         {
-            // 排序获取代价最低的节点
+            // 按fCost升序排序，取代价最低节点
             openList.Sort((a, b) => a.fCost.CompareTo(b.fCost));
             PathNode currentNode = openList[0];
             openList.RemoveAt(0);
             closedList.Add(currentNode);
 
-            // 到达终点
+            // 到达终点，回溯路径
             if (currentNode.x == endX && currentNode.y == endY)
             {
                 path = RetracePath(currentNode, parentMap);
                 return path;
             }
 
-            // 遍历四向邻居
+            // 遍历邻居
             foreach (var dir in dirs)
             {
                 int newX = currentNode.x + dir.x;
                 int newY = currentNode.y + dir.y;
                 PathNode neighborNode = new PathNode(newX, newY, 0, 0);
 
-                // 过滤：越界、障碍物、已访问
+                // 过滤越界、障碍物、已访问
                 if (!IsValid(newX, newY) || closedList.Contains(neighborNode))
                     continue;
 
-                // 计算代价
                 float newGCost = currentNode.gCost + 1;
-                neighborNode.gCost = newGCost;
-                neighborNode.hCost = ManhattanDistance(newX, newY, endX, endY);
 
-                // 更新节点
+                // 不在开放列表 → 直接加入
                 if (!openList.Contains(neighborNode))
                 {
+                    neighborNode.gCost = newGCost;
+                    neighborNode.hCost = ManhattanDistance(newX, newY, endX, endY);
                     parentMap[neighborNode] = currentNode;
-                    if (!openList.Contains(neighborNode))
-                    {
-                        openList.Add(neighborNode);
-                    }
+                    openList.Add(neighborNode);
                 }
             }
         }
-        // 无路径
+
         return path;
     }
 
-    // 回溯路径
     private static List<Vector3> RetracePath(PathNode endNode, Dictionary<PathNode, PathNode> parentMap)
     {
         List<Vector3> path = new List<Vector3>();
@@ -95,13 +82,11 @@ public static class AStar
         return path;
     }
 
-    // 曼哈顿距离
     private static float ManhattanDistance(int x1, int y1, int x2, int y2)
     {
         return Mathf.Abs(x1 - x2) + Mathf.Abs(y1 - y2);
     }
 
-    // 检测格子是否合法
     private static bool IsValid(int x, int y)
     {
         GridData[,] map = GridManager.Instance.grids;

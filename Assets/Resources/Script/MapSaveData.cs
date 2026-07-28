@@ -1,6 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 [System.Serializable]
 public class MapSaveData
 {
@@ -9,6 +8,7 @@ public class MapSaveData
     public float gridSize;
     public GridData[] grids;
 }
+
 [System.Serializable]
 public class GridData
 {
@@ -17,7 +17,10 @@ public class GridData
     public bool canWalk;
     public int type;
     public int defBonus;
+
     [HideInInspector] public Renderer tileRenderer;
+    [HideInInspector] public bool isHighlighted; // 新增：高亮状态标记
+
     public GridData(int x, int y, bool isWalkable, Renderer renderer, int type)
     {
         this.x = x;
@@ -25,7 +28,10 @@ public class GridData
         this.canWalk = isWalkable;
         this.tileRenderer = renderer;
         this.type = type;
+        this.defBonus = 0;
+        this.isHighlighted = false;
     }
+
     public override bool Equals(object obj)
     {
         return obj is GridData grid && x == grid.x && y == grid.y;

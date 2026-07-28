@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -6,33 +7,30 @@ public class GridManager : MonoBehaviour
 {
     public static GridManager Instance;
 
-    // 地图数据（二维数组，运行时使用）
     public GridData[,] grids;
     private GameObject[,] gridObjects;
 
     [Header("地图设置")]
-    public int gridSize = 16;       // 固定16x16
-    public Color normalColor = Color.white;    // 普通颜色
-    public Color highlightColor = Color.green; // 可移动高亮
-    public Color obstacleColor = Color.gray;   // 障碍物颜色
+    public int gridSize = 16;
+    public Color normalColor = Color.white;
+    public Color highlightColor = Color.green;
+    public Color obstacleColor = Color.gray;
 
     private void Awake()
     {
         Instance = this;
-        //SaveDataToJson();
-        LoadMapFromJson();    // 加载JSON地图数据
-        GenerateGridVisual(); // 生成格子对象
+        LoadMapFromJson();
+        GenerateGridVisual();
     }
 
-    // 生成格子视觉表现
     void GenerateGridVisual()
     {
         GameObject tilePrefab = Resources.Load<GameObject>("Prefab/Grid");
-        GameObject obstraclePrefab = Resources.Load<GameObject>("Prefab/Obstracle");
+        GameObject obstaclePrefab = Resources.Load<GameObject>("Prefab/Obstracle");
         GameObject defendPrefab = Resources.Load<GameObject>("Prefab/DefendGrid");
+
         int width = grids.GetLength(0);
         int height = grids.GetLength(1);
-
         gridObjects = new GameObject[width, height];
 
         for (int x = 0; x < width; x++)
@@ -42,28 +40,26 @@ public class GridManager : MonoBehaviour
                 GridData data = grids[x, y];
                 Vector3 pos = new Vector3(data.x, -1, data.y);
 
-                if (grids[x, y].type == 0) 
+                if (data.type == 0)
                 {
-                    GameObject tile = Instantiate(tilePrefab, pos, tilePrefab.transform.rotation, transform);
+                    GameObject tile = Instantiate(tilePrefab, pos, Quaternion.identity, transform);
                     tile.name = $"Tile_{x}_{y}";
                     gridObjects[x, y] = tile;
-
                     Renderer rend = tile.GetComponent<Renderer>();
                     data.tileRenderer = rend;
                     rend.material.color = normalColor;
                 }
-                else if (grids[x, y].type == 1)
+                else if (data.type == 1)
                 {
-                    GameObject obstracle = Instantiate(obstraclePrefab, pos, obstraclePrefab.transform.rotation, transform);
-                    obstracle.name = $"obstracle_{x}_{y}";
-                    gridObjects[x, y] = obstracle;
+                    GameObject obstacle = Instantiate(obstaclePrefab, pos, Quaternion.identity, transform);
+                    obstacle.name = $"Obstacle_{x}_{y}";
+                    gridObjects[x, y] = obstacle;
                 }
-                else if (grids[x, y].type == 2)
+                else if (data.type == 2)
                 {
-                    GameObject defend = Instantiate(defendPrefab, pos, defendPrefab.transform.rotation, transform);
+                    GameObject defend = Instantiate(defendPrefab, pos, Quaternion.identity, transform);
                     defend.name = $"Defend_{x}_{y}";
                     gridObjects[x, y] = defend;
-
                     Renderer rend = defend.GetComponent<Renderer>();
                     data.tileRenderer = rend;
                     rend.material.color = normalColor;
@@ -72,34 +68,35 @@ public class GridManager : MonoBehaviour
         }
     }
 
-    // 获取指定坐标的格子
     public GridData GetTile(int x, int y)
     {
         if (x >= 0 && x < gridSize && y >= 0 && y < gridSize)
             return grids[x, y];
         return null;
     }
-    //将当前格子设为不可移动（防止角色之间碰撞和重叠）
+
     public void SetMoveFalse(int x, int y)
     {
         if (x >= 0 && x < gridSize && y >= 0 && y < gridSize)
-            grids[x,y].canWalk = false;
+            grids[x, y].canWalk = false;
     }
-    //重置当前位置格子为可移动
+
     public void ResetMove(int x, int y)
     {
         if (x >= 0 && x < gridSize && y >= 0 && y < gridSize)
             grids[x, y].canWalk = true;
     }
 
-    // 高亮可移动的格子
+    // 高亮可移动/可攻击格子
     public void HighlightMoveableTiles(GridData[] moveableTiles)
     {
-        ResetAllTileColor();
         foreach (var tile in moveableTiles)
         {
-            if (tile != null)
+            if (tile != null && tile.tileRenderer != null)
+            {
                 tile.tileRenderer.material.color = highlightColor;
+                tile.isHighlighted = true; // 同步标记状态
+            }
         }
     }
 
@@ -109,28 +106,30 @@ public class GridManager : MonoBehaviour
         foreach (var tile in grids)
         {
             if (tile.tileRenderer != null)
+            {
                 tile.tileRenderer.material.color = tile.canWalk ? normalColor : obstacleColor;
+            }
+            tile.isHighlighted = false;
         }
     }
 
-    public bool isHighLight(GridData tile)
+    // 判断格子是否高亮
+    public bool IsHighlight(GridData tile)
     {
-        return tile.tileRenderer.material.color == highlightColor;
+        return tile != null && tile.isHighlighted;
     }
 
     public void LoadMapFromJson()
     {
         string path = Application.dataPath + "/map.json";
-
         if (!File.Exists(path))
         {
-            Debug.LogError("未找到 map.json，自动生成 16x16 默认地图");
+            Debug.LogError("未找到map.json，自动生成默认地图");
             SaveDataToJson();
         }
 
         string json = File.ReadAllText(path);
         MapSaveData data = JsonUtility.FromJson<MapSaveData>(json);
-
         grids = new GridData[data.width, data.height];
 
         foreach (var gridData in data.grids)
@@ -144,11 +143,13 @@ public class GridManager : MonoBehaviour
     [ContextMenu("保存地图为JSON")]
     public void SaveDataToJson()
     {
-        MapSaveData data = new MapSaveData();
-        data.width = 16;
-        data.height = 16;
-        data.gridSize = 1;
-        data.grids = new GridData[16 * 16];
+        MapSaveData data = new MapSaveData
+        {
+            width = 16,
+            height = 16,
+            gridSize = 1,
+            grids = new GridData[16 * 16]
+        };
 
         int index = 0;
         for (int x = 0; x < 16; x++)
@@ -162,6 +163,6 @@ public class GridManager : MonoBehaviour
         string json = JsonUtility.ToJson(data, true);
         string path = Application.dataPath + "/map.json";
         File.WriteAllText(path, json);
-        Debug.Log("16x16 地图已保存：" + path);
+        Debug.Log("地图已保存：" + path);
     }
 }
